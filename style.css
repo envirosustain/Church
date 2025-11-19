@@ -333,24 +333,6 @@ body.fullscreen-enabled.mobile #autorotateToggle {
 body.single-scene #sceneList, body.single-scene #sceneListToggle {
   display: none;
 }
-/* ESL logo nadir patch */
-.esl-logo {
-  /* Size of the logo “disc” – tweak to cover the black circle */
-  width: 320px;
-  height: 320px;
-
-  /* Center the hotspot on its position (Marzipano sets left/top) */
-  margin-left: -160px;   /* half of width */
-  margin-top: -160px;    /* half of height */
-
-  pointer-events: none;  /* don’t block dragging/clicking the pano */
-}
-
-.esl-logo img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;   /* keep the logo’s proportions */
-}
 
 /* Link hotspot */
 
