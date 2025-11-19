@@ -1,139 +1,185 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Church Walkthrough</title>
-<meta charset="utf-8">
-<meta name="viewport" content="target-densitydpi=device-dpi, width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, minimal-ui" />
-<style> @-ms-viewport { width: device-width; } </style>
-<link rel="stylesheet" href="vendor/reset.min.css">
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Church Tour</title>
+    <style>
+        body { margin: 0; padding: 0; background: #000; font-family: Arial, sans-serif; overflow: hidden; }
+        #pano { width: 100vw; height: 100vh; position: relative; }
+        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; z-index: 10; }
+        #progress { width: 200px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden; margin: 10px auto; }
+        #progress-bar { height: 100%; background: #4CAF50; width: 0%; transition: width 0.3s; }
+        #nav { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 5; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px; display: flex; gap: 10px; }
+        .thumb { width: 60px; height: 40px; background-size: cover; border-radius: 5px; cursor: pointer; opacity: 0.7; transition: opacity 0.3s; }
+        .thumb.active { opacity: 1; border: 2px solid #4CAF50; }
+        #autorotate-btn { position: absolute; top: 20px; right: 20px; z-index: 5; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px; border-radius: 50%; cursor: pointer; font-size: 16px; }
+        #autorotate-btn:hover { background: rgba(0,0,0,0.8); }
+        #info-popup { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: white; padding: 20px; border-radius: 10px; max-width: 300px; z-index: 20; display: none; }
+        .hotspot { position: absolute; width: 20px; height: 20px; background: url('images/hotspot-icon.png') no-repeat center; background-size: contain; cursor: pointer; z-index: 15; }
+        /* Custom compass/tripod logo */
+        #compass { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; background: url('images/logo.png') no-repeat center; background-size: contain; z-index: 5; opacity: 0.8; transition: opacity 0.3s; pointer-events: none; }
+        #compass:hover { opacity: 1; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/marzipano@0.5.1/build/marzipano.min.js"></script>
 </head>
-<body class="multiple-scenes view-control-buttons">
+<body>
+    <div id="pano"></div>
+    <div id="loading">
+        <div>Loading...</div>
+        <div id="progress"><div id="progress-bar"></div></div>
+    </div>
+    <button id="autorotate-btn">⏸️</button>
+    <div id="compass"></div> <!-- Logo in tripod circle -->
+    <div id="nav"></div>
+    <div id="info-popup">
+        <h3 id="popup-title"></h3>
+        <p id="popup-text"></p>
+        <button onclick="closePopup()">Close</button>
+    </div>
 
-<div id="pano"></div>
+    <script>
+        // Scene config - Customize these!
+        const scenes = {
+            sanctuary: {
+                title: 'Sanctuary',
+                image: 'images/sanctuary.jpg',
+                hotspots: [
+                    { pitch: 0.3, yaw: 0.5, type: 'scene', target: 'lobby', label: 'To Lobby' },
+                    { pitch: -0.2, yaw: -0.8, type: 'info', title: 'Main Altar', text: 'This is the heart of our worship space, seating 200+.' }
+                ],
+                thumb: 'images/sanctuary-thumb.jpg' // Low-res preview
+            },
+            lobby: {
+                title: 'Lobby',
+                image: 'images/lobby.jpg',
+                hotspots: [
+                    { pitch: 0.1, yaw: 1.0, type: 'scene', target: 'sanctuary', label: 'To Sanctuary' },
+                    { pitch: 0.4, yaw: 0.2, type: 'info', title: 'Welcome Area', text: 'Gather here before services—coffee served Sundays!' }
+                ],
+                thumb: 'images/lobby-thumb.jpg'
+            },
+            altar: {
+                title: 'Altar Close-Up',
+                image: 'images/altar.jpg',
+                hotspots: [
+                    { pitch: -0.1, yaw: -0.3, type: 'scene', target: 'lobby', label: 'Back to Lobby' }
+                ],
+                thumb: 'images/altar-thumb.jpg'
+            }
+        };
 
-<div id="sceneList">
-  <ul class="scenes">
-    
-      <a href="javascript:void(0)" class="scene" data-id="0-entrance-001">
-        <li class="text">Entrance 001</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="1-entrance-002">
-        <li class="text">Entrance 002</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="2-main-hall-001">
-        <li class="text">Main Hall 001</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="3-main-hall-002">
-        <li class="text">Main Hall 002</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="4-main-hall-003">
-        <li class="text">Main Hall 003</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="5-main-hall-004">
-        <li class="text">Main Hall 004</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="6-main-hall-005">
-        <li class="text">Main Hall 005</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="7-kitchenfunction-room-001">
-        <li class="text">Kitchen/Function Room 001</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="8-kitchenfunction-room-002">
-        <li class="text">Kitchen/Function Room 002</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="9-kitchen-001">
-        <li class="text">Kitchen 001</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="10-kitchen-002">
-        <li class="text">Kitchen 002</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="11-wc-lobby-001">
-        <li class="text">WC Lobby 001</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="12-wc-lobby-002">
-        <li class="text">WC Lobby 002</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="13-function-room-001">
-        <li class="text">Function Room 001</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="14-function-room-002">
-        <li class="text">Function Room 002</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="15-exit-001">
-        <li class="text">Exit 001</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="16-exit-002">
-        <li class="text">Exit 002</li>
-      </a>
-    
-      <a href="javascript:void(0)" class="scene" data-id="17-exit-003">
-        <li class="text">Exit 003</li>
-      </a>
-    
-  </ul>
-</div>
+        let viewer, currentScene = 'sanctuary';
+        let autorotate = null;
+        const initialView = { yaw: 0, pitch: 0, hfov: 100 };
 
-<div id="titleBar">
-  <h1 class="sceneName"></h1>
-</div>
+        // Create viewer
+        const panoElement = document.getElementById('pano');
+        viewer = new Marzipano.Viewer(panoElement, {
+            controls: { mouse: true, touch: true },
+            defaultViewController: true
+        });
 
-<a href="javascript:void(0)" id="autorotateToggle">
-  <img class="icon off" src="img/play.png">
-  <img class="icon on" src="img/pause.png">
-</a>
+        // Load first scene
+        loadScene(currentScene);
 
-<a href="javascript:void(0)" id="fullscreenToggle">
-  <img class="icon off" src="img/fullscreen.png">
-  <img class="icon on" src="img/windowed.png">
-</a>
+        // Scene loader with progress
+        function loadScene(sceneId) {
+            const scene = scenes[sceneId];
+            Marzipano.ImageUrlSource.fromString(scene.image, { cubeMapPreviewUrl: null })
+                .then(source => {
+                    const geometry = new Marzipano.CubeGeometry([{ faces: 6 }]);
+                    const limiter = Marzipano.util.compose(
+                        Marzipano.DomUtil.getScreenEdgeBias(),
+                        Marzipano.RectangleLimiter({ x: [-Math.PI, Math.PI], y: [-Math.PI/2, Math.PI/2] })
+                    );
+                    const view = new Marzipano.RectilinearView(initialView, limiter);
 
-<a href="javascript:void(0)" id="sceneListToggle">
-  <img class="icon off" src="img/expand.png">
-  <img class="icon on" src="img/collapse.png">
-</a>
+                    const sceneObj = viewer.createScene(source, geometry, view);
+                    sceneObj.lookTo(initialView.yaw, initialView.pitch, initialView.hfov);
 
-<a href="javascript:void(0)" id="viewUp" class="viewControlButton viewControlButton-1">
-  <img class="icon" src="img/up.png">
-</a>
-<a href="javascript:void(0)" id="viewDown" class="viewControlButton viewControlButton-2">
-  <img class="icon" src="img/down.png">
-</a>
-<a href="javascript:void(0)" id="viewLeft" class="viewControlButton viewControlButton-3">
-  <img class="icon" src="img/left.png">
-</a>
-<a href="javascript:void(0)" id="viewRight" class="viewControlButton viewControlButton-4">
-  <img class="icon" src="img/right.png">
-</a>
-<a href="javascript:void(0)" id="viewIn" class="viewControlButton viewControlButton-5">
-  <img class="icon" src="img/plus.png">
-</a>
-<a href="javascript:void(0)" id="viewOut" class="viewControlButton viewControlButton-6">
-  <img class="icon" src="img/minus.png">
-</a>
+                    // Hotspots
+                    scene.hotspots.forEach(hotspot => {
+                        const element = document.createElement('div');
+                        element.className = 'hotspot';
+                        element.style.left = (0.5 + hotspot.yaw / (Math.PI * 2)) * 100 + '%';
+                        element.style.top = (0.5 - hotspot.pitch / Math.PI) * 100 + '%';
+                        element.onclick = () => {
+                            if (hotspot.type === 'scene') {
+                                switchScene(hotspot.target, { transition: 'fade' });
+                            } else if (hotspot.type === 'info') {
+                                showPopup(hotspot.title, hotspot.text);
+                            }
+                        };
+                        panoElement.appendChild(element);
+                    });
 
-<script src="vendor/screenfull.min.js" ></script>
-<script src="vendor/bowser.min.js" ></script>
-<script src="vendor/marzipano.js" ></script>
+                    // Progress bar
+                    source.onProgress(0, 1); // Fake start
+                    source.onProgress = (loaded, total) => {
+                        document.getElementById('progress-bar').style.width = (loaded / total * 100) + '%';
+                        if (loaded === total) setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+                    };
 
-<script src="data.js"></script>
-<script src="index.js"></script>
+                    viewer.setScene(sceneObj);
+                    updateThumbs(sceneId);
+                    startAutorotate();
+                })
+                .catch(err => console.error('Load error:', err));
+        }
 
+        // Switch scenes with fade
+        function switchScene(sceneId, options = {}) {
+            const fadeTime = options.transition === 'fade' ? 1000 : 0;
+            viewer.switchSceneWithTransition(loadScene.bind(null, sceneId), { transition: 'crossFade', duration: fadeTime });
+            currentScene = sceneId;
+        }
+
+        // Thumbnail nav
+        function updateThumbs(activeId) {
+            const nav = document.getElementById('nav');
+            nav.innerHTML = '';
+            Object.keys(scenes).forEach(id => {
+                const thumb = document.createElement('div');
+                thumb.className = 'thumb';
+                thumb.style.backgroundImage = `url(${scenes[id].thumb})`;
+                thumb.onclick = () => switchScene(id);
+                if (id === activeId) thumb.classList.add('active');
+                nav.appendChild(thumb);
+            });
+        }
+
+        // Autorotate
+        function startAutorotate() {
+            if (autorotate) autorotate.stop();
+            autorotate = viewer.addControl(Marzipano.util.simpleAutorotate(0.002)); // Slow rotate
+            document.getElementById('autorotate-btn').textContent = '⏸️';
+        }
+        function toggleAutorotate() {
+            if (autorotate) {
+                autorotate.stop();
+                autorotate = null;
+                document.getElementById('autorotate-btn').textContent = '▶️';
+            } else {
+                startAutorotate();
+            }
+        }
+        document.getElementById('autorotate-btn').onclick = toggleAutorotate;
+
+        // Info popup
+        function showPopup(title, text) {
+            document.getElementById('popup-title').textContent = title;
+            document.getElementById('popup-text').textContent = text;
+            document.getElementById('info-popup').style.display = 'block';
+        }
+        function closePopup() {
+            document.getElementById('info-popup').style.display = 'none';
+        }
+
+        // Mobile tweaks
+        if ('ontouchstart' in window) {
+            viewer.controls().enableTouch();
+        }
+    </script>
 </body>
 </html>
