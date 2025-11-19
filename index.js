@@ -99,6 +99,23 @@
       var element = createInfoHotspotElement(hotspot);
       scene.hotspotContainer().createHotspot(element, { yaw: hotspot.yaw, pitch: hotspot.pitch });
     });
+// Create info hotspots.
+data.infoHotspots.forEach(function(hotspot) {
+  var element = createInfoHotspotElement(hotspot);
+  scene.hotspotContainer().createHotspot(element, { yaw: hotspot.yaw, pitch: hotspot.pitch });
+});
+
+// --- ESL Logo Nadir Patch ---
+var eslLogoElement = document.getElementById("ESLlogo");
+
+scene.hotspotContainer().createHotspot(
+  eslLogoElement,
+  {
+    yaw: 0,              // centered horizontally
+    pitch: Math.PI / 2   // bottom (nadir)
+  }
+);
+// --- END ESL Logo Nadir Patch ---
 
     return {
       data: data,

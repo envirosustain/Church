@@ -4,13 +4,39 @@
 <title>Church Walkthrough</title>
 <meta charset="utf-8">
 <meta name="viewport" content="target-densitydpi=device-dpi, width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, minimal-ui" />
-<style> @-ms-viewport { width: device-width; } </style>
+<style>
+  @-ms-viewport { width: device-width; }
+
+  /* ESL logo nadir patch */
+  .esl-logo {
+    position: absolute;
+    width: 320px;       /* adjust size to cover black circle */
+    height: 320px;
+    left: 50%;
+    top: 50%;
+    margin-left: -160px;  /* half of width */
+    margin-top: -160px;   /* half of height */
+    pointer-events: none; /* allow dragging the pano */
+    z-index: 9999;
+  }
+
+  .esl-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+</style>
 <link rel="stylesheet" href="vendor/reset.min.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body class="multiple-scenes view-control-buttons">
 
 <div id="pano"></div>
+
+<!-- ESL logo element used as nadir patch -->
+<div id="ESLlogo" class="esl-logo">
+  <img src="img/ESL-logo.png" alt="ESL Logo">
+</div>
 
 <div id="sceneList">
   <ul class="scenes">
@@ -95,45 +121,4 @@
 </div>
 
 <a href="javascript:void(0)" id="autorotateToggle">
-  <img class="icon off" src="img/play.png">
-  <img class="icon on" src="img/pause.png">
-</a>
-
-<a href="javascript:void(0)" id="fullscreenToggle">
-  <img class="icon off" src="img/fullscreen.png">
-  <img class="icon on" src="img/windowed.png">
-</a>
-
-<a href="javascript:void(0)" id="sceneListToggle">
-  <img class="icon off" src="img/expand.png">
-  <img class="icon on" src="img/collapse.png">
-</a>
-
-<a href="javascript:void(0)" id="viewUp" class="viewControlButton viewControlButton-1">
-  <img class="icon" src="img/up.png">
-</a>
-<a href="javascript:void(0)" id="viewDown" class="viewControlButton viewControlButton-2">
-  <img class="icon" src="img/down.png">
-</a>
-<a href="javascript:void(0)" id="viewLeft" class="viewControlButton viewControlButton-3">
-  <img class="icon" src="img/left.png">
-</a>
-<a href="javascript:void(0)" id="viewRight" class="viewControlButton viewControlButton-4">
-  <img class="icon" src="img/right.png">
-</a>
-<a href="javascript:void(0)" id="viewIn" class="viewControlButton viewControlButton-5">
-  <img class="icon" src="img/plus.png">
-</a>
-<a href="javascript:void(0)" id="viewOut" class="viewControlButton viewControlButton-6">
-  <img class="icon" src="img/minus.png">
-</a>
-
-<script src="vendor/screenfull.min.js" ></script>
-<script src="vendor/bowser.min.js" ></script>
-<script src="vendor/marzipano.js" ></script>
-
-<script src="data.js"></script>
-<script src="index.js"></script>
-
-</body>
-</html>
+  <img class="icon off"
