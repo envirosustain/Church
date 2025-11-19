@@ -7,16 +7,17 @@
     <style>
         body { margin: 0; padding: 0; background: #000; font-family: Arial, sans-serif; overflow: hidden; }
         #pano { width: 100vw; height: 100vh; position: relative; }
-        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; z-index: 10; }
+        #loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; z-index: 10; text-align: center; }
         #progress { width: 200px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden; margin: 10px auto; }
         #progress-bar { height: 100%; background: #4CAF50; width: 0%; transition: width 0.3s; }
+        #error { color: #ff6b6b; margin-top: 10px; font-size: 14px; }
         #nav { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 5; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 10px; display: flex; gap: 10px; }
         .thumb { width: 60px; height: 40px; background-size: cover; border-radius: 5px; cursor: pointer; opacity: 0.7; transition: opacity 0.3s; }
         .thumb.active { opacity: 1; border: 2px solid #4CAF50; }
         #autorotate-btn { position: absolute; top: 20px; right: 20px; z-index: 5; background: rgba(0,0,0,0.5); color: white; border: none; padding: 10px; border-radius: 50%; cursor: pointer; font-size: 16px; }
         #autorotate-btn:hover { background: rgba(0,0,0,0.8); }
         #info-popup { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: white; padding: 20px; border-radius: 10px; max-width: 300px; z-index: 20; display: none; }
-        .hotspot { position: absolute; width: 20px; height: 20px; background: url('images/hotspot-icon.png') no-repeat center; background-size: contain; cursor: pointer; z-index: 15; }
+        .hotspot { position: absolute; width: 20px; height: 20px; background: radial-gradient(circle, #4CAF50 0%, transparent 70%); border-radius: 50%; cursor: pointer; z-index: 15; box-shadow: 0 0 10px #4CAF50; }
         /* Custom compass/tripod logo */
         #compass { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; background: url('images/logo.png') no-repeat center; background-size: contain; z-index: 5; opacity: 0.8; transition: opacity 0.3s; pointer-events: none; }
         #compass:hover { opacity: 1; }
@@ -26,12 +27,13 @@
 <body>
     <div id="pano"></div>
     <div id="loading">
-        <div>Loading...</div>
+        <div>Loading Tour...</div>
         <div id="progress"><div id="progress-bar"></div></div>
+        <div id="error" style="display: none;"></div>
     </div>
-    <button id="autorotate-btn">⏸️</button>
+    <button id="autorotate-btn" style="display: none;">⏸️</button>
     <div id="compass"></div> <!-- Logo in tripod circle -->
-    <div id="nav"></div>
+    <div id="nav" style="display: none;"></div>
     <div id="info-popup">
         <h3 id="popup-title"></h3>
         <p id="popup-text"></p>
@@ -39,33 +41,33 @@
     </div>
 
     <script>
-        // Scene config - Customize these!
+        // Scene config - Now with demo images! Swap to yours later.
         const scenes = {
             sanctuary: {
-                title: 'Sanctuary',
-                image: 'images/sanctuary.jpg',
+                title: 'Sanctuary (Demo)',
+                image: 'https://marzipano.net/img/demo.jpg', // Marzipano demo panorama
                 hotspots: [
                     { pitch: 0.3, yaw: 0.5, type: 'scene', target: 'lobby', label: 'To Lobby' },
                     { pitch: -0.2, yaw: -0.8, type: 'info', title: 'Main Altar', text: 'This is the heart of our worship space, seating 200+.' }
                 ],
-                thumb: 'images/sanctuary-thumb.jpg' // Low-res preview
+                thumb: 'https://marzipano.net/img/demo-thumb.jpg' // Placeholder thumb (you can use a cropped version)
             },
             lobby: {
-                title: 'Lobby',
-                image: 'images/lobby.jpg',
+                title: 'Lobby (Demo)',
+                image: 'https://marzipano.net/img/demo.jpg', // Reuse demo for now; change to 'images/lobby.jpg'
                 hotspots: [
                     { pitch: 0.1, yaw: 1.0, type: 'scene', target: 'sanctuary', label: 'To Sanctuary' },
                     { pitch: 0.4, yaw: 0.2, type: 'info', title: 'Welcome Area', text: 'Gather here before services—coffee served Sundays!' }
                 ],
-                thumb: 'images/lobby-thumb.jpg'
+                thumb: 'https://marzipano.net/img/demo-thumb.jpg'
             },
             altar: {
-                title: 'Altar Close-Up',
-                image: 'images/altar.jpg',
+                title: 'Altar Close-Up (Demo)',
+                image: 'https://marzipano.net/img/demo.jpg',
                 hotspots: [
                     { pitch: -0.1, yaw: -0.3, type: 'scene', target: 'lobby', label: 'Back to Lobby' }
                 ],
-                thumb: 'images/altar-thumb.jpg'
+                thumb: 'https://marzipano.net/img/demo-thumb.jpg'
             }
         };
 
@@ -83,9 +85,11 @@
         // Load first scene
         loadScene(currentScene);
 
-        // Scene loader with progress
+        // Scene loader with progress & error handling
         function loadScene(sceneId) {
             const scene = scenes[sceneId];
+            console.log(`Loading scene: ${scene.image}`); // Debug log
+
             Marzipano.ImageUrlSource.fromString(scene.image, { cubeMapPreviewUrl: null })
                 .then(source => {
                     const geometry = new Marzipano.CubeGeometry([{ faces: 6 }]);
@@ -98,15 +102,20 @@
                     const sceneObj = viewer.createScene(source, geometry, view);
                     sceneObj.lookTo(initialView.yaw, initialView.pitch, initialView.hfov);
 
-                    // Hotspots
-                    scene.hotspots.forEach(hotspot => {
+                    // Clear old hotspots
+                    document.querySelectorAll('.hotspot').forEach(el => el.remove());
+
+                    // Add hotspots
+                    scene.hotspots.forEach((hotspot, index) => {
                         const element = document.createElement('div');
                         element.className = 'hotspot';
                         element.style.left = (0.5 + hotspot.yaw / (Math.PI * 2)) * 100 + '%';
                         element.style.top = (0.5 - hotspot.pitch / Math.PI) * 100 + '%';
-                        element.onclick = () => {
+                        element.title = hotspot.label || '';
+                        element.onclick = (e) => {
+                            e.stopPropagation();
                             if (hotspot.type === 'scene') {
-                                switchScene(hotspot.target, { transition: 'fade' });
+                                switchScene(hotspot.target);
                             } else if (hotspot.type === 'info') {
                                 showPopup(hotspot.title, hotspot.text);
                             }
@@ -114,24 +123,53 @@
                         panoElement.appendChild(element);
                     });
 
-                    // Progress bar
-                    source.onProgress(0, 1); // Fake start
+                    // Progress tracking with timeout
+                    let progressInterval = setInterval(() => {
+                        // Simulate if no callback (fallback)
+                        const bar = document.getElementById('progress-bar');
+                        let width = parseInt(bar.style.width);
+                        if (width < 100) {
+                            bar.style.width = (width + 10) + '%';
+                        } else {
+                            clearInterval(progressInterval);
+                            hideLoading();
+                        }
+                    }, 200);
+
                     source.onProgress = (loaded, total) => {
+                        console.log(`Progress: ${loaded}/${total}`);
+                        clearInterval(progressInterval);
                         document.getElementById('progress-bar').style.width = (loaded / total * 100) + '%';
-                        if (loaded === total) setTimeout(() => document.getElementById('loading').style.display = 'none', 500);
+                        if (loaded === total) {
+                            setTimeout(hideLoading, 500);
+                        }
                     };
 
                     viewer.setScene(sceneObj);
                     updateThumbs(sceneId);
+                    document.getElementById('autorotate-btn').style.display = 'block';
+                    document.getElementById('nav').style.display = 'flex';
                     startAutorotate();
                 })
-                .catch(err => console.error('Load error:', err));
+                .catch(err => {
+                    console.error('Load error:', err);
+                    document.getElementById('error').textContent = 'Failed to load panorama. Check console or image paths.';
+                    document.getElementById('error').style.display = 'block';
+                    setTimeout(hideLoading, 2000); // Hide anyway
+                });
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
         }
 
         // Switch scenes with fade
-        function switchScene(sceneId, options = {}) {
-            const fadeTime = options.transition === 'fade' ? 1000 : 0;
-            viewer.switchSceneWithTransition(loadScene.bind(null, sceneId), { transition: 'crossFade', duration: fadeTime });
+        function switchScene(sceneId) {
+            // Fade out current, load new
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('error').style.display = 'none';
+            loadScene(sceneId);
             currentScene = sceneId;
         }
 
@@ -143,6 +181,7 @@
                 const thumb = document.createElement('div');
                 thumb.className = 'thumb';
                 thumb.style.backgroundImage = `url(${scenes[id].thumb})`;
+                if (!scenes[id].thumb) thumb.style.backgroundColor = '#333'; // Fallback if no thumb
                 thumb.onclick = () => switchScene(id);
                 if (id === activeId) thumb.classList.add('active');
                 nav.appendChild(thumb);
@@ -152,7 +191,7 @@
         // Autorotate
         function startAutorotate() {
             if (autorotate) autorotate.stop();
-            autorotate = viewer.addControl(Marzipano.util.simpleAutorotate(0.002)); // Slow rotate
+            autorotate = viewer.addControl(Marzipano.util.simpleAutorotate(0.002));
             document.getElementById('autorotate-btn').textContent = '⏸️';
         }
         function toggleAutorotate() {
@@ -180,6 +219,9 @@
         if ('ontouchstart' in window) {
             viewer.controls().enableTouch();
         }
+
+        // Hide loading after 10s timeout as backup
+        setTimeout(hideLoading, 10000);
     </script>
 </body>
 </html>
